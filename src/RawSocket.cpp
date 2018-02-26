@@ -11,10 +11,9 @@
 
 #include <algorithm>
 #include <cerrno>
+#include <cstdio>
 #include <cstring>
 #include <system_error>
-
-#include "SocketSelector.hpp"
 
 RawSocket::RawSocket(const std::string& interfaceName) {
   // Open RAW socket to send on
@@ -79,36 +78,33 @@ int RawSocket::SendTo(const std::array<uint8_t, kMacOctets>& destinationMac,
                 sizeof(struct sockaddr_ll));
 }
 
-int RawSocket::Recv(void* buf, size_t len) {
-  int ret;
-  size_t numRead = 0;
+StringView RawSocket::RecvFrom(StringView buf) {
+  struct sockaddr_ll src_addr;
+  socklen_t addr_len = sizeof(struct sockaddr_ll);
 
-  SocketSelector selector;
-
-  while (numRead < len) {
-    selector.Zero(SocketSelector::read | SocketSelector::except);
-
-    // Set the sockets into the fd_set s
-    selector.AddSocket(m_sockfd, SocketSelector::read | SocketSelector::except);
-
-    ret = selector.Select();
-
-    if (ret == -1) {
-      return -1;
-    }
-
-    // If an exception occurred with the socket, return error.
-    if (selector.IsReady(m_sockfd, SocketSelector::except)) {
-      return -1;
-    }
-
-    // Otherwise, read some more.
-    ret = recv(m_sockfd, static_cast<char*>(buf) + numRead, len - numRead, 0);
-    if (ret < 1) {
-      return -1;
-    }
-    numRead += ret;
+  // Receive packet
+  int ret = recvfrom(m_sockfd, reinterpret_cast<char*>(buf.str), buf.len, 0,
+                     reinterpret_cast<sockaddr*>(&src_addr), &addr_len);
+  if (ret < 0) {
+    return {nullptr, 0};
+  } else {
+    return buf;
   }
+}
 
-  return numRead;
+void RawSocket::ParseHeader(StringView buf) {
+  auto eth = reinterpret_cast<struct ethhdr*>(buf.str);
+
+  std::printf("\nEthernet Header\n");
+  std::printf("\t|-Source Address: %.2X-%.2X-%.2X-%.2X-%.2X-%.2X\n",
+              eth->h_source[0], eth->h_source[1], eth->h_source[2],
+              eth->h_source[3], eth->h_source[4], eth->h_source[5]);
+  std::printf("\t|-Destination Address: %.2X-%.2X-%.2X-%.2X-%.2X-%.2X\n",
+              eth->h_dest[0], eth->h_dest[1], eth->h_dest[2], eth->h_dest[3],
+              eth->h_dest[4], eth->h_dest[5]);
+  std::printf("\t|-Protocol: %d\n", eth->h_proto);
+}
+
+StringView RawSocket::GetPayload(StringView buf) {
+  return {buf.str + sizeof(struct ethhdr), buf.len - sizeof(struct ethhdr)};
 }

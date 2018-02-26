@@ -8,6 +8,8 @@
 #include <array>
 #include <string>
 
+#include "StringView.hpp"
+
 class RawSocket {
  public:
   // Number of octets in MAC address
@@ -23,10 +25,25 @@ class RawSocket {
    * Reads up to len bytes from the socket and stores them in buf.
    *
    * @param buf The buffer in which to store read bytes.
-   * @param len The maximum number of bytes to read from the socket.
-   * @return The number of bytes actually read or -1 on error.
+   * @return A StringView of buf or a null StringView on error.
    */
-  int Recv(void* buf, size_t len);
+  StringView RecvFrom(StringView buf);
+
+  /**
+   * Prints out ethernet header data from a packet received via RecvFrom().
+   *
+   * @param buf The buffer containing the ethernet frame.
+   */
+  static void ParseHeader(StringView buf);
+
+  /**
+   * Returns pointer to payload in a packet received via RecvFrom().
+   *
+   * @param buf The buffer containing the ethernet frame.
+   * @param len Size of ethernet frame.
+   * @return A StringView of the payload.
+   */
+  static StringView GetPayload(StringView buf);
 
  private:
   static constexpr size_t kMaxDatagramSize = 65507;
