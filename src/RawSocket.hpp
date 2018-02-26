@@ -10,14 +10,13 @@
 
 class RawSocket {
  public:
-  // Maximum number of destination MAC addresses that can be sent to in one
-  // sendto(2) call
-  static constexpr size_t kMaxDestMacs = 6;
+  // Number of octets in MAC address
+  static constexpr size_t kMacOctets = 6;
 
   explicit RawSocket(const std::string& interfaceName);
   ~RawSocket();
 
-  int SendTo(const std::array<uint8_t, kMaxDestMacs>& destinationMacs,
+  int SendTo(const std::array<uint8_t, kMacOctets>& destinationMac,
              const void* buf, size_t len);
 
   /**

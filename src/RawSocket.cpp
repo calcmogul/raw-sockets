@@ -40,15 +40,15 @@ RawSocket::RawSocket(const std::string& interfaceName) {
 
 RawSocket::~RawSocket() { close(m_sockfd); }
 
-int RawSocket::SendTo(const std::array<uint8_t, kMaxDestMacs>& destinationMacs,
+int RawSocket::SendTo(const std::array<uint8_t, kMacOctets>& destinationMac,
                       const void* buf, size_t len) {
   auto eh = reinterpret_cast<struct ether_header*>(m_txBuffer.data());
 
   // Ethernet header
-  for (size_t i = 0; i < kMaxDestMacs; i++) {
+  for (size_t i = 0; i < kMacOctets; i++) {
     eh->ether_shost[i] =
         reinterpret_cast<uint8_t*>(&m_if_mac.ifr_hwaddr.sa_data)[i];
-    eh->ether_dhost[i] = destinationMacs[i];
+    eh->ether_dhost[i] = destinationMac[i];
   }
 
   // Ethertype field
@@ -69,8 +69,8 @@ int RawSocket::SendTo(const std::array<uint8_t, kMaxDestMacs>& destinationMacs,
   socket_address.sll_halen = ETH_ALEN;
 
   // Destination MAC
-  for (size_t i = 0; i < kMaxDestMacs; ++i) {
-    socket_address.sll_addr[i] = destinationMacs[i];
+  for (size_t i = 0; i < kMacOctets; i++) {
+    socket_address.sll_addr[i] = destinationMac[i];
   }
 
   // Send packet

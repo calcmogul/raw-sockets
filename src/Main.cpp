@@ -5,8 +5,8 @@
 #include "RawSocket.hpp"
 
 int main(int argc, char* argv[]) {
-  constexpr std::array<uint8_t, 6> destinationMacs = {0x00, 0x00, 0x00,
-                                                      0x00, 0x00, 0x00};
+  constexpr std::array<uint8_t, 6> destinationMac = {0x00, 0x00, 0x00,
+                                                     0x00, 0x00, 0x00};
 
   constexpr const char* kDefaultInterface = "eth0";
 
@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
   sendbuf[txLen++] = 0xef;
 
   // Send packet
-  if (socket.SendTo(destinationMacs, sendbuf, txLen) < 0) {
+  if (socket.SendTo(destinationMac, sendbuf, txLen) < 0) {
     std::cout << "Send failed\n";
   }
 }
