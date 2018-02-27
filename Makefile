@@ -11,7 +11,7 @@
 # Defining VERBOSE before running make (i.e., VERBOSE=1 make) will print all
 # commands ran.
 
-EXEC := raw-socket
+EXEC := raw-sockets
 
 CC := gcc
 CFLAGS := -O3 -Wall -s -std=c11 -flto
@@ -28,7 +28,7 @@ LD := g++
 IFLAGS :=
 
 # Specify libs with -l directives here
-LDFLAGS :=
+LDFLAGS := -lpthread
 
 SRCDIR := src
 OBJDIR := build

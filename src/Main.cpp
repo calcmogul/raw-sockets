@@ -2,16 +2,42 @@
 
 #include <stdint.h>
 
+#include <atomic>
+#include <functional>
 #include <iostream>
+#include <thread>
 
 #include "RawSocket.hpp"
 #include "StringView.hpp"
+
+std::atomic<bool> isRunning{false};
+
+void recvFunc(RawSocket& socket) {
+  char recvbuf[65536];
+
+  while (isRunning) {
+    StringView recvView{recvbuf, 65536};
+
+    // Receive packet
+    std::cout << "RecvFrom()..." << std::endl;
+    recvView = socket.RecvFrom(recvView);
+    if (recvView.str == nullptr) {
+      continue;
+    }
+
+    // Parse ethernet header
+    RawSocket::ParseHeader(recvView);
+
+    // Get payload
+    recvView = RawSocket::GetPayload(recvView);
+  }
+}
 
 int main(int argc, char* argv[]) {
   constexpr std::array<uint8_t, 6> destinationMac = {0x00, 0x00, 0x00,
                                                      0x00, 0x00, 0x00};
 
-  constexpr const char* kDefaultInterface = "eth0";
+  constexpr const char* kDefaultInterface = "lo";
 
   std::string interfaceName;
 
@@ -23,9 +49,10 @@ int main(int argc, char* argv[]) {
   }
 
   RawSocket socket(interfaceName);
+  socket.Bind(interfaceName);
 
   char sendbuf[1024];
-  int txLen = 0;
+  size_t txLen = 0;
 
   // Packet data
   sendbuf[txLen++] = 0xde;
@@ -33,26 +60,20 @@ int main(int argc, char* argv[]) {
   sendbuf[txLen++] = 0xbe;
   sendbuf[txLen++] = 0xef;
 
-  // Send packet
-  if (socket.SendTo(destinationMac, sendbuf, txLen) < 0) {
-    std::cout << "Send failed\n";
-  }
+  StringView sendView{sendbuf, txLen};
 
-  char recvbuf[65536];
+  isRunning = true;
+  std::thread recvThread{recvFunc, std::ref(socket)};
 
   while (1) {
-    StringView buf{recvbuf, 65536};
-
-    // Receive packet
-    buf = socket.RecvFrom(buf);
-    if (buf.str == nullptr) {
-      continue;
+    // Send packet
+    if (socket.SendTo(destinationMac, sendView) < 0) {
+      std::cout << "Send failed\n";
     }
 
-    // Parse ethernet header
-    RawSocket::ParseHeader(buf);
-
-    // Get payload
-    buf = RawSocket::GetPayload(buf);
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
+
+  isRunning = false;
+  recvThread.join();
 }

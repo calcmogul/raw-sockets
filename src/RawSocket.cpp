@@ -39,8 +39,16 @@ RawSocket::RawSocket(const std::string& interfaceName) {
 
 RawSocket::~RawSocket() { close(m_sockfd); }
 
+void RawSocket::Bind(std::string interfaceName) {
+  if (setsockopt(m_sockfd, SOL_SOCKET, SO_BINDTODEVICE, interfaceName.c_str(),
+                 interfaceName.length()) < 0) {
+    throw std::system_error(errno, std::system_category(),
+                            "RawSocket::Bind(): " + interfaceName);
+  }
+}
+
 int RawSocket::SendTo(const std::array<uint8_t, kMacOctets>& destinationMac,
-                      const void* buf, size_t len) {
+                      const StringView buf) {
   auto eh = reinterpret_cast<struct ether_header*>(m_txBuffer.data());
 
   // Ethernet header
@@ -54,10 +62,10 @@ int RawSocket::SendTo(const std::array<uint8_t, kMacOctets>& destinationMac,
   eh->ether_type = htons(ETH_P_IP);
 
   // Packet data
-  const size_t payloadLength = std::min(len, kMaxDatagramSize);
+  const size_t payloadLength = std::min(buf.len, kMaxDatagramSize);
   const size_t packetLength = sizeof(struct ether_header) + payloadLength;
-  std::memcpy(m_txBuffer.data() + sizeof(struct ether_header),
-              static_cast<const char*>(buf), payloadLength);
+  std::memcpy(m_txBuffer.data() + sizeof(struct ether_header), buf.str,
+              payloadLength);
 
   struct sockaddr_ll socket_address;
 

@@ -18,11 +18,26 @@ class RawSocket {
   explicit RawSocket(const std::string& interfaceName);
   ~RawSocket();
 
-  int SendTo(const std::array<uint8_t, kMacOctets>& destinationMac,
-             const void* buf, size_t len);
+  /**
+   * Bind the socket to the specified interface.
+   *
+   * Throws a std::system_error exception if the socket failed to bind.
+   */
+  void Bind(std::string interfaceName);
 
   /**
-   * Reads up to len bytes from the socket and stores them in buf.
+   * Sends the data referenced by the StringView to the destination MAC address.
+   *
+   * @param destinationMac The MAC address of the destination interface.
+   * @param buf            The buffer containing the payload.
+   * @return The number of bytes sent or -1 on error.
+   */
+  int SendTo(const std::array<uint8_t, kMacOctets>& destinationMac,
+             const StringView buf);
+
+  /**
+   * Reads up to the number of bytes the StringView buf can hold and stores them
+   * there.
    *
    * @param buf The buffer in which to store read bytes.
    * @return A StringView of buf or a null StringView on error.
