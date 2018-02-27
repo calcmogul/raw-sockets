@@ -50,6 +50,7 @@ int main(int argc, char* argv[]) {
 
   RawSocket socket(interfaceName);
   socket.Bind(interfaceName);
+  std::cout << "Bound raw socket to \"" << interfaceName << "\"\n";
 
   char sendbuf[1024];
   size_t txLen = 0;

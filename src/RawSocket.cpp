@@ -87,12 +87,8 @@ int RawSocket::SendTo(const std::array<uint8_t, kMacOctets>& destinationMac,
 }
 
 StringView RawSocket::RecvFrom(StringView buf) {
-  struct sockaddr_ll src_addr;
-  socklen_t addr_len = sizeof(struct sockaddr_ll);
-
   // Receive packet
-  int ret = recvfrom(m_sockfd, reinterpret_cast<char*>(buf.str), buf.len, 0,
-                     reinterpret_cast<sockaddr*>(&src_addr), &addr_len);
+  int ret = recv(m_sockfd, reinterpret_cast<char*>(buf.str), buf.len, 0);
   if (ret < 0) {
     return {nullptr, 0};
   } else {
