@@ -19,7 +19,6 @@ void recvFunc(RawSocket& socket) {
     StringView recvView{recvbuf, 65536};
 
     // Receive packet
-    std::cout << "RecvFrom()..." << std::endl;
     recvView = socket.RecvFrom(recvView);
     if (recvView.str == nullptr) {
       continue;

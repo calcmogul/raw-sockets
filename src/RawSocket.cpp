@@ -17,23 +17,40 @@
 
 RawSocket::RawSocket(const std::string& interfaceName) {
   // Open RAW socket to send on
-  m_sockfd = socket(AF_PACKET, SOCK_RAW, IPPROTO_RAW);
+  m_sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
   if (m_sockfd == -1) {
     throw std::system_error(errno, std::system_category(), "socket");
   }
 
   // Get the index of the interface to send on
   std::memset(&m_if_idx, 0, sizeof(struct ifreq));
-  std::strncpy(m_if_idx.ifr_name, interfaceName.c_str(), IFNAMSIZ - 1);
+  std::strncpy(m_if_idx.ifr_name, interfaceName.c_str(),
+               interfaceName.length());
   if (ioctl(m_sockfd, SIOCGIFINDEX, &m_if_idx) < 0) {
     throw std::system_error(errno, std::system_category(), "SIOCGIFINDEX");
   }
 
   // Get the MAC address of the interface to send on
   std::memset(&m_if_mac, 0, sizeof(struct ifreq));
-  std::strncpy(m_if_mac.ifr_name, interfaceName.c_str(), IFNAMSIZ - 1);
+  std::strncpy(m_if_mac.ifr_name, interfaceName.c_str(),
+               interfaceName.length());
   if (ioctl(m_sockfd, SIOCGIFHWADDR, &m_if_mac) < 0) {
     throw std::system_error(errno, std::system_category(), "SIOCGIFHWADDR");
+  }
+
+  // Set interface to promiscuous mode
+  struct ifreq ifopts;
+  std::strncpy(ifopts.ifr_name, interfaceName.c_str(), interfaceName.length());
+  ioctl(m_sockfd, SIOCGIFFLAGS, &ifopts);
+  ifopts.ifr_flags |= IFF_PROMISC;
+  ioctl(m_sockfd, SIOCSIFFLAGS, &ifopts);
+
+  // Allow socket to be reused if connection closes prematurely
+  int sockopt;
+  if (setsockopt(m_sockfd, SOL_SOCKET, SO_REUSEADDR, &sockopt,
+                 sizeof(sockopt)) == -1) {
+    throw std::system_error(errno, std::system_category(), "SO_REUSEADDR");
+    close(m_sockfd);
   }
 }
 
