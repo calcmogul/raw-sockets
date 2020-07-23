@@ -1,34 +1,31 @@
-// Copyright (c) 2018 Tyler Veness. All Rights Reserved.
+// Copyright (c) 2018-2020 Tyler Veness. All Rights Reserved.
 
 #include <stdint.h>
 
 #include <atomic>
-#include <functional>
 #include <iostream>
+#include <string_view>
 #include <thread>
 
 #include "RawSocket.hpp"
-#include "StringView.hpp"
 
 std::atomic<bool> isRunning{false};
 
 void recvFunc(RawSocket& socket) {
-  char recvbuf[65536];
+  std::array<char, 65536> recvBuf;
 
   while (isRunning) {
-    StringView recvView{recvbuf, 65536};
-
     // Receive packet
-    recvView = socket.RecvFrom(recvView);
-    if (recvView.str == nullptr) {
+    int readBytes = socket.RecvFrom(recvBuf);
+    if (readBytes <= 0) {
       continue;
     }
 
     // Parse ethernet header
-    RawSocket::ParseHeader(recvView);
+    RawSocket::ParseHeader(std::string_view{recvBuf.data(), recvBuf.size()});
 
     // Get payload
-    recvView = RawSocket::GetPayload(recvView);
+    std::string_view recvView = RawSocket::GetPayload(recvView);
   }
 }
 
@@ -60,7 +57,7 @@ int main(int argc, char* argv[]) {
   sendbuf[txLen++] = 0xbe;
   sendbuf[txLen++] = 0xef;
 
-  StringView sendView{sendbuf, txLen};
+  std::string_view sendView{sendbuf, txLen};
 
   isRunning = true;
   std::thread recvThread{recvFunc, std::ref(socket)};

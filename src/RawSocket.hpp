@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Tyler Veness. All Rights Reserved.
+// Copyright (c) 2018-2020 Tyler Veness. All Rights Reserved.
 
 #pragma once
 
@@ -6,16 +6,14 @@
 #include <stdint.h>
 
 #include <array>
-#include <string>
-
-#include "StringView.hpp"
+#include <string_view>
 
 class RawSocket {
  public:
   // Number of octets in MAC address
   static constexpr size_t kMacOctets = 6;
 
-  explicit RawSocket(const std::string& interfaceName);
+  explicit RawSocket(std::string_view interfaceName);
   ~RawSocket();
 
   /**
@@ -23,42 +21,47 @@ class RawSocket {
    *
    * Throws a std::system_error exception if the socket failed to bind.
    */
-  void Bind(std::string interfaceName);
+  void Bind(std::string_view interfaceName);
 
   /**
-   * Sends the data referenced by the StringView to the destination MAC address.
+   * Sends the data referenced by the std::string_view to the destination MAC
+   * address.
    *
    * @param destinationMac The MAC address of the destination interface.
    * @param buf            The buffer containing the payload.
    * @return The number of bytes sent or -1 on error.
    */
-  int SendTo(const std::array<uint8_t, kMacOctets>& destinationMac,
-             const StringView buf);
+  ssize_t SendTo(const std::array<uint8_t, kMacOctets>& destinationMac,
+                 std::string_view buf);
 
   /**
-   * Reads up to the number of bytes the StringView buf can hold and stores them
-   * there.
+   * Reads up to the number of bytes the std::string_view buf can hold and
+   * stores them there.
    *
    * @param buf The buffer in which to store read bytes.
-   * @return A StringView of buf or a null StringView on error.
+   * @return Number of bytes received or -1 on error.
    */
-  StringView RecvFrom(StringView buf);
+  template <size_t N>
+  ssize_t RecvFrom(std::array<char, N>& buf) {
+    // Receive packet
+    return recv(m_sockfd, reinterpret_cast<char*>(buf.data()), buf.size(), 0);
+  }
 
   /**
    * Prints out ethernet header data from a packet received via RecvFrom().
    *
    * @param buf The buffer containing the ethernet frame.
    */
-  static void ParseHeader(StringView buf);
+  static void ParseHeader(std::string_view buf);
 
   /**
    * Returns pointer to payload in a packet received via RecvFrom().
    *
    * @param buf The buffer containing the ethernet frame.
    * @param len Size of ethernet frame.
-   * @return A StringView of the payload.
+   * @return A std::string_view of the payload.
    */
-  static StringView GetPayload(StringView buf);
+  static std::string_view GetPayload(std::string_view buf);
 
  private:
   static constexpr size_t kMaxDatagramSize = 65507;

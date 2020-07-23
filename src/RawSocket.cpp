@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Tyler Veness. All Rights Reserved.
+// Copyright (c) 2018-2020 Tyler Veness. All Rights Reserved.
 
 #include "RawSocket.hpp"
 
@@ -9,13 +9,13 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include <algorithm>
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
+#include <string>
 #include <system_error>
 
-RawSocket::RawSocket(const std::string& interfaceName) {
+RawSocket::RawSocket(std::string_view interfaceName) {
   // Open RAW socket to send on
   m_sockfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
   if (m_sockfd == -1) {
@@ -24,23 +24,21 @@ RawSocket::RawSocket(const std::string& interfaceName) {
 
   // Get the index of the interface to send on
   std::memset(&m_if_idx, 0, sizeof(struct ifreq));
-  std::strncpy(m_if_idx.ifr_name, interfaceName.c_str(),
-               interfaceName.length());
+  std::strncpy(m_if_idx.ifr_name, interfaceName.data(), interfaceName.length());
   if (ioctl(m_sockfd, SIOCGIFINDEX, &m_if_idx) < 0) {
     throw std::system_error(errno, std::system_category(), "SIOCGIFINDEX");
   }
 
   // Get the MAC address of the interface to send on
   std::memset(&m_if_mac, 0, sizeof(struct ifreq));
-  std::strncpy(m_if_mac.ifr_name, interfaceName.c_str(),
-               interfaceName.length());
+  std::strncpy(m_if_mac.ifr_name, interfaceName.data(), interfaceName.length());
   if (ioctl(m_sockfd, SIOCGIFHWADDR, &m_if_mac) < 0) {
     throw std::system_error(errno, std::system_category(), "SIOCGIFHWADDR");
   }
 
   // Set interface to promiscuous mode
   struct ifreq ifopts;
-  std::strncpy(ifopts.ifr_name, interfaceName.c_str(), interfaceName.length());
+  std::strncpy(ifopts.ifr_name, interfaceName.data(), interfaceName.length());
   ioctl(m_sockfd, SIOCGIFFLAGS, &ifopts);
   ifopts.ifr_flags |= IFF_PROMISC;
   ioctl(m_sockfd, SIOCSIFFLAGS, &ifopts);
@@ -56,16 +54,17 @@ RawSocket::RawSocket(const std::string& interfaceName) {
 
 RawSocket::~RawSocket() { close(m_sockfd); }
 
-void RawSocket::Bind(std::string interfaceName) {
-  if (setsockopt(m_sockfd, SOL_SOCKET, SO_BINDTODEVICE, interfaceName.c_str(),
+void RawSocket::Bind(std::string_view interfaceName) {
+  if (setsockopt(m_sockfd, SOL_SOCKET, SO_BINDTODEVICE, interfaceName.data(),
                  interfaceName.length()) < 0) {
-    throw std::system_error(errno, std::system_category(),
-                            "RawSocket::Bind(): " + interfaceName);
+    throw std::system_error(
+        errno, std::system_category(),
+        std::string{"RawSocket::Bind(): "}.append(interfaceName));
   }
 }
 
-int RawSocket::SendTo(const std::array<uint8_t, kMacOctets>& destinationMac,
-                      const StringView buf) {
+ssize_t RawSocket::SendTo(const std::array<uint8_t, kMacOctets>& destinationMac,
+                          std::string_view buf) {
   auto eh = reinterpret_cast<struct ether_header*>(m_txBuffer.data());
 
   // Ethernet header
@@ -79,9 +78,9 @@ int RawSocket::SendTo(const std::array<uint8_t, kMacOctets>& destinationMac,
   eh->ether_type = htons(ETH_P_IP);
 
   // Packet data
-  const size_t payloadLength = std::min(buf.len, kMaxDatagramSize);
+  const size_t payloadLength = std::min(buf.length(), kMaxDatagramSize);
   const size_t packetLength = sizeof(struct ether_header) + payloadLength;
-  std::memcpy(m_txBuffer.data() + sizeof(struct ether_header), buf.str,
+  std::memcpy(m_txBuffer.data() + sizeof(struct ether_header), buf.data(),
               payloadLength);
 
   struct sockaddr_ll socket_address;
@@ -103,18 +102,8 @@ int RawSocket::SendTo(const std::array<uint8_t, kMacOctets>& destinationMac,
                 sizeof(struct sockaddr_ll));
 }
 
-StringView RawSocket::RecvFrom(StringView buf) {
-  // Receive packet
-  int ret = recv(m_sockfd, reinterpret_cast<char*>(buf.str), buf.len, 0);
-  if (ret < 0) {
-    return {nullptr, 0};
-  } else {
-    return buf;
-  }
-}
-
-void RawSocket::ParseHeader(StringView buf) {
-  auto eth = reinterpret_cast<struct ethhdr*>(buf.str);
+void RawSocket::ParseHeader(std::string_view buf) {
+  auto eth = reinterpret_cast<const struct ethhdr*>(buf.data());
 
   std::printf("\nEthernet Header\n");
   std::printf("\t|-Source Address: %.2X-%.2X-%.2X-%.2X-%.2X-%.2X\n",
@@ -126,6 +115,7 @@ void RawSocket::ParseHeader(StringView buf) {
   std::printf("\t|-Protocol: %d\n", eth->h_proto);
 }
 
-StringView RawSocket::GetPayload(StringView buf) {
-  return {buf.str + sizeof(struct ethhdr), buf.len - sizeof(struct ethhdr)};
+std::string_view RawSocket::GetPayload(std::string_view buf) {
+  return {buf.data() + sizeof(struct ethhdr),
+          buf.length() - sizeof(struct ethhdr)};
 }
