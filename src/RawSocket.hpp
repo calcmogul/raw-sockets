@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Tyler Veness. All Rights Reserved.
+// Copyright (c) Tyler Veness. All Rights Reserved.
 
 #pragma once
 
@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 #include <array>
+#include <span>
 #include <string_view>
 
 class RawSocket {
@@ -24,19 +25,18 @@ class RawSocket {
   void Bind(std::string_view interfaceName);
 
   /**
-   * Sends the data referenced by the std::string_view to the destination MAC
-   * address.
+   * Sends the data referenced by the span to the destination MAC address.
    *
    * @param destinationMac The MAC address of the destination interface.
    * @param buf            The buffer containing the payload.
    * @return The number of bytes sent or -1 on error.
    */
   ssize_t SendTo(const std::array<uint8_t, kMacOctets>& destinationMac,
-                 std::string_view buf);
+                 std::span<char> buf);
 
   /**
-   * Reads up to the number of bytes the std::string_view buf can hold and
-   * stores them there.
+   * Reads up to the number of bytes the span buf can hold and stores them
+   * there.
    *
    * @param buf The buffer in which to store read bytes.
    * @return Number of bytes received or -1 on error.
@@ -52,16 +52,16 @@ class RawSocket {
    *
    * @param buf The buffer containing the ethernet frame.
    */
-  static void ParseHeader(std::string_view buf);
+  static void ParseHeader(std::span<char> buf);
 
   /**
    * Returns pointer to payload in a packet received via RecvFrom().
    *
    * @param buf The buffer containing the ethernet frame.
    * @param len Size of ethernet frame.
-   * @return A std::string_view of the payload.
+   * @return A span of the payload.
    */
-  static std::string_view GetPayload(std::string_view buf);
+  static std::span<char> GetPayload(std::span<char> buf);
 
  private:
   static constexpr size_t kMaxDatagramSize = 65507;

@@ -1,10 +1,10 @@
-// Copyright (c) 2018-2020 Tyler Veness. All Rights Reserved.
+// Copyright (c) Tyler Veness. All Rights Reserved.
 
 #include <stdint.h>
 
 #include <atomic>
-#include <iostream>
-#include <string_view>
+#include <cstddef>
+#include <print>
 #include <thread>
 
 #include "RawSocket.hpp"
@@ -22,10 +22,10 @@ void recvFunc(RawSocket& socket) {
     }
 
     // Parse ethernet header
-    RawSocket::ParseHeader(std::string_view{recvBuf.data(), recvBuf.size()});
+    RawSocket::ParseHeader(recvBuf);
 
     // Get payload
-    std::string_view recvView = RawSocket::GetPayload(recvView);
+    auto recvView = RawSocket::GetPayload(recvBuf);
   }
 }
 
@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
 
   constexpr const char* kDefaultInterface = "lo";
 
-  std::string interfaceName;
+  const char* interfaceName;
 
   // Get interface name
   if (argc > 1) {
@@ -46,26 +46,24 @@ int main(int argc, char* argv[]) {
 
   RawSocket socket(interfaceName);
   socket.Bind(interfaceName);
-  std::cout << "Bound raw socket to \"" << interfaceName << "\"\n";
+  std::println("Bound raw socket to \"{}\"", interfaceName);
 
-  char sendbuf[1024];
+  std::array<char, 1024> sendbuf;
   size_t txLen = 0;
 
   // Packet data
-  sendbuf[txLen++] = 0xde;
-  sendbuf[txLen++] = 0xad;
-  sendbuf[txLen++] = 0xbe;
-  sendbuf[txLen++] = 0xef;
-
-  std::string_view sendView{sendbuf, txLen};
+  sendbuf[txLen++] = static_cast<char>(0xde);
+  sendbuf[txLen++] = static_cast<char>(0xad);
+  sendbuf[txLen++] = static_cast<char>(0xbe);
+  sendbuf[txLen++] = static_cast<char>(0xef);
 
   isRunning = true;
   std::thread recvThread{recvFunc, std::ref(socket)};
 
   while (1) {
     // Send packet
-    if (socket.SendTo(destinationMac, sendView) < 0) {
-      std::cout << "Send failed\n";
+    if (socket.SendTo(destinationMac, {sendbuf.data(), txLen}) < 0) {
+      std::println("Send failed");
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
