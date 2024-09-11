@@ -21,11 +21,24 @@ void recvFunc(RawSocket& socket) {
       continue;
     }
 
-    // Parse ethernet header
-    RawSocket::ParseHeader(recvBuf);
+    auto header = RawSocket::GetHeader(recvBuf);
+    std::print("\nethernet [");
+    std::print("src {:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
+               header->h_source[0], header->h_source[1], header->h_source[2],
+               header->h_source[3], header->h_source[4], header->h_source[5]);
+    std::print(", dest {:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}",
+               header->h_dest[0], header->h_dest[1], header->h_dest[2],
+               header->h_dest[3], header->h_dest[4], header->h_dest[5]);
+    std::println(", proto {}]", header->h_proto);
 
-    // Get payload
-    auto recvView = RawSocket::GetPayload(recvBuf);
+    auto payload = RawSocket::GetPayload(recvBuf);
+    for (size_t i = 0; i < payload.size(); ++i) {
+      if (i % 64 == 0) {
+        std::print("\n   ");
+      }
+      std::print(" {:02X}", payload[i]);
+    }
+    std::println();
   }
 }
 

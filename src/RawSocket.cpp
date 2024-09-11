@@ -4,7 +4,6 @@
 
 #include <arpa/inet.h>
 #include <linux/if_packet.h>
-#include <netinet/ether.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -12,7 +11,6 @@
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
-#include <print>
 #include <string>
 #include <system_error>
 
@@ -103,18 +101,8 @@ ssize_t RawSocket::SendTo(const std::array<uint8_t, kMacOctets>& destinationMac,
                 sizeof(struct sockaddr_ll));
 }
 
-void RawSocket::ParseHeader(std::span<char> buf) {
-  auto eth = reinterpret_cast<const struct ethhdr*>(buf.data());
-
-  std::println("\nEthernet Header");
-  std::println("\t|-Source Address: {:02X}-{:02X}-{:02X}-{:02X}-{:02X}-{:02X}",
-               eth->h_source[0], eth->h_source[1], eth->h_source[2],
-               eth->h_source[3], eth->h_source[4], eth->h_source[5]);
-  std::println(
-      "\t|-Destination Address: {:02X}-{:02X}-{:02X}-{:02X}-{:02X}-{:02X}",
-      eth->h_dest[0], eth->h_dest[1], eth->h_dest[2], eth->h_dest[3],
-      eth->h_dest[4], eth->h_dest[5]);
-  std::println("\t|-Protocol: {}", eth->h_proto);
+const struct ethhdr* RawSocket::GetHeader(std::span<char> buf) {
+  return reinterpret_cast<const struct ethhdr*>(buf.data());
 }
 
 std::span<char> RawSocket::GetPayload(std::span<char> buf) {

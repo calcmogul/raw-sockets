@@ -3,6 +3,7 @@
 #pragma once
 
 #include <net/if.h>
+#include <netinet/ether.h>
 #include <stdint.h>
 
 #include <array>
@@ -48,14 +49,14 @@ class RawSocket {
   }
 
   /**
-   * Prints out ethernet header data from a packet received via RecvFrom().
+   * Returns header from a packet received via RecvFrom().
    *
    * @param buf The buffer containing the ethernet frame.
    */
-  static void ParseHeader(std::span<char> buf);
+  static const struct ethhdr* GetHeader(std::span<char> buf);
 
   /**
-   * Returns pointer to payload in a packet received via RecvFrom().
+   * Returns span of payload from a packet received via RecvFrom().
    *
    * @param buf The buffer containing the ethernet frame.
    * @param len Size of ethernet frame.
