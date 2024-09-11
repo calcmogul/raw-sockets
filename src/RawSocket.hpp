@@ -33,7 +33,7 @@ class RawSocket {
    * @return The number of bytes sent or -1 on error.
    */
   ssize_t SendTo(const std::array<uint8_t, kMacOctets>& destinationMac,
-                 std::span<char> buf);
+                 std::span<const char> buf);
 
   /**
    * Reads up to the number of bytes the span buf can hold and stores them
@@ -53,7 +53,7 @@ class RawSocket {
    *
    * @param buf The buffer containing the ethernet frame.
    */
-  static const struct ethhdr* GetHeader(std::span<char> buf);
+  static const struct ethhdr* GetHeader(std::span<const char> buf);
 
   /**
    * Returns span of payload from a packet received via RecvFrom().
@@ -62,7 +62,7 @@ class RawSocket {
    * @param len Size of ethernet frame.
    * @return A span of the payload.
    */
-  static std::span<char> GetPayload(std::span<char> buf);
+  static std::span<const char> GetPayload(std::span<const char> buf);
 
  private:
   static constexpr size_t kMaxDatagramSize = 65507;

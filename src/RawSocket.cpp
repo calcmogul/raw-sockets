@@ -63,7 +63,7 @@ void RawSocket::Bind(std::string_view interfaceName) {
 }
 
 ssize_t RawSocket::SendTo(const std::array<uint8_t, kMacOctets>& destinationMac,
-                          std::span<char> buf) {
+                          std::span<const char> buf) {
   auto eh = reinterpret_cast<struct ether_header*>(m_txBuffer.data());
 
   // Ethernet header
@@ -101,11 +101,11 @@ ssize_t RawSocket::SendTo(const std::array<uint8_t, kMacOctets>& destinationMac,
                 sizeof(struct sockaddr_ll));
 }
 
-const struct ethhdr* RawSocket::GetHeader(std::span<char> buf) {
+const struct ethhdr* RawSocket::GetHeader(std::span<const char> buf) {
   return reinterpret_cast<const struct ethhdr*>(buf.data());
 }
 
-std::span<char> RawSocket::GetPayload(std::span<char> buf) {
+std::span<const char> RawSocket::GetPayload(std::span<const char> buf) {
   return {buf.data() + sizeof(struct ethhdr),
           buf.size() - sizeof(struct ethhdr)};
 }
