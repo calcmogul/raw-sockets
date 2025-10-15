@@ -5,15 +5,11 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
 endif()
 
-# Generate compile_commands.json by default
-if(NOT CMAKE_EXPORT_COMPILE_COMMANDS)
-    set(CMAKE_EXPORT_COMPILE_COMMANDS "YES" CACHE STRING "" FORCE)
-endif()
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(raw-sockets)
 
 file(GLOB_RECURSE cpp_src src/*.cpp)
-set_property(SOURCE ${cpp_src} PROPERTY COMPILE_FLAGS "-Wno-unused")
 add_executable(raw-sockets ${cpp_src})
 
 target_compile_options(raw-sockets PRIVATE -Wall -Wextra -pedantic)
