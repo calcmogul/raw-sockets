@@ -1,10 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-# Set default build type to release
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
-endif()
-
+set(CMAKE_BUILD_TYPE "Release" CACHE STRING "")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(raw-sockets)
