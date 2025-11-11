@@ -10,39 +10,3 @@ cppHeaderFileInclude {
 cppSrcFileInclude {
   \.cpp$
 }
-
-generatedFileExclude {
-  folder1/
-  folder2/subdir1/subdir2/
-  header1\.h$
-  header2\.h$
-}
-
-modifiableFileExclude {
-  __pycache__/
-  folder/subdir/
-  \.jar$
-  \.patch$
-}
-
-licenseUpdateExclude {
-}
-
-includeGuardRoots {
-}
-
-includeRelated {
-}
-
-includeCSys {
-}
-
-includeCppSys {
-}
-
-includeOtherLibs {
-}
-
-includeProject {
-  ^ctre/
-}

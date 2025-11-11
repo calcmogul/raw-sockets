@@ -1,4 +1,4 @@
-// Copyright (c) Tyler Veness. All Rights Reserved.
+// Copyright (c) Tyler Veness
 
 #include <stdint.h>
 
